@@ -42,3 +42,7 @@ next-env.d.ts
 
 # local database and encryption key
 /data/
+
+# local screenshots from scripts/screenshots.mjs
+/screenshots/
+!.env.example

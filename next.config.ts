@@ -9,7 +9,7 @@ const lanAddresses = Object.values(networkInterfaces())
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: lanAddresses,
-  serverExternalPackages: ["imapflow", "nodemailer", "mailparser"],
+  serverExternalPackages: ["better-sqlite3"],
 };
 
 export default nextConfig;
