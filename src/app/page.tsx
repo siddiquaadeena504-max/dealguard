@@ -1,6 +1,18 @@
-import { redirect } from "next/navigation";
+import { Benefits, FinalCta, Footer, Hero, HowItWorks, Nav, NicheStrip, PayPalStrip } from "@/components/landing/sections";
 
-// The landing page is built on Day 3; until then the root shows the design system.
-export default function Home() {
-  redirect("/style");
+export default function Landing() {
+  return (
+    <>
+      <Nav />
+      <main>
+        <Hero />
+        <NicheStrip />
+        <Benefits />
+        <HowItWorks />
+        <PayPalStrip />
+        <FinalCta />
+      </main>
+      <Footer />
+    </>
+  );
 }

@@ -19,7 +19,15 @@ for (const route of routes) {
       page.on("pageerror", (e) => errors.push(e.message));
       page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
       await page.goto(BASE + route, { waitUntil: "networkidle" });
-      await page.waitForTimeout(400);
+      // Scroll through so scroll-triggered reveals fire, then return to the top.
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.body.scrollHeight; y += 500) {
+          window.scrollTo(0, y);
+          await new Promise((r) => setTimeout(r, 80));
+        }
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(900);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       const name = `${route.replace(/\W+/g, "_").replace(/^_|_$/g, "") || "home"}-${sizeName}-${scheme}.png`;
       await page.screenshot({ path: `${OUT}/${name}`, fullPage: true });

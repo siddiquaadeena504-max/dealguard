@@ -1,7 +1,8 @@
 "use client";
 
+import { useReduce } from "@/components/motion/use-reduce";
 import { useEffect, useRef, useState } from "react";
-import { animate, useInView, useReducedMotion } from "framer-motion";
+import { animate, useInView } from "framer-motion";
 import { money } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +34,7 @@ export function CountUp({
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
-  const reduce = useReducedMotion();
+  const reduce = useReduce();
   // Always start at 0 so server and browser render the same text.
   const [shown, setShown] = useState(0);
 
