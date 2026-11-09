@@ -331,7 +331,7 @@ function ReminderDraft({ r }: { r: Reminder }) {
               start(async () => {
                 const res = await sendReminderAction(r.id, subject, body);
                 if (!res.ok) return void toast.error("Reminder not sent", { description: res.error });
-                toast.success("Nudge sent. We'll keep an eye on it.", { description: res.simulated ? "Simulated: add PayPal keys to send for real." : "Sent through PayPal's reminder." });
+                toast.success("Nudge sent. We'll keep an eye on it.", { description: res.simulated ? "Simulated: PayPal sandbox didn't accept this one, so it was simulated." : "Sent through PayPal's reminder." });
                 router.refresh();
               })
             }
@@ -550,7 +550,7 @@ function Collaborators({ deal, collaborators, payouts }: { deal: DealPlus; colla
                 start(async () => {
                   const res = await sendPayoutsAction(deal.id);
                   if (!res.ok) return void toast.error("Payout not sent", { description: res.error });
-                  toast.success(`Sent ${res.count} payout${res.count > 1 ? "s" : ""}`, { description: res.simulated ? "Simulated: add PayPal keys to pay for real." : "Via PayPal Payouts." });
+                  toast.success(`Sent ${res.count} payout${res.count > 1 ? "s" : ""}`, { description: res.simulated ? "Simulated: Payouts isn't enabled on this PayPal sandbox account yet." : "Via PayPal Payouts." });
                   router.refresh();
                 })
               }
