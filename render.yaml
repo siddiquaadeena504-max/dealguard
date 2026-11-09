@@ -24,8 +24,10 @@ services:
         sync: false
       - key: PAYPAL_WEBHOOK_ID
         sync: false
+      # Any OpenAI-compatible endpoint: Groq (https://api.groq.com/openai/v1)
+      # or OpenRouter (https://openrouter.ai/api/v1).
       - key: AI_BASE_URL
-        value: https://api.groq.com/openai/v1
+        value: https://openrouter.ai/api/v1
       - key: AI_API_KEY
         sync: false
       - key: AI_MODEL

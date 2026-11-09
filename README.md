@@ -129,7 +129,7 @@ With no keys, DealGuard runs fully in demo mode: the built-in reader extracts de
 | `PAYPAL_BASE_URL` | `https://api-m.sandbox.paypal.com` |
 | `PAYPAL_BUSINESS_EMAIL` | The sandbox **business** account email (invoices are sent from it). |
 | `PAYPAL_WEBHOOK_ID` | Optional. ID of the webhook you register for `INVOICING.INVOICE.PAID`. |
-| `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | Groq key, `https://api.groq.com/openai/v1`, and a Groq model name. |
+| `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | Any OpenAI-compatible provider. Groq: `https://api.groq.com/openai/v1`. OpenRouter: `https://openrouter.ai/api/v1` with a model like `google/gemma-4-31b-it:free`. |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini fallback key and model name. |
 | `DATA_DIR` | Optional. Folder for the SQLite file (default `./data`). |
 
