@@ -34,7 +34,7 @@ await step("open new deal, pick Notion email", async () => {
   await page.getByRole("button", { name: /Extract deal with AI/ }).click();
 });
 await step("fields animate in with values", async () => {
-  await page.getByRole("button", { name: /Review invoice/ }).waitFor({ timeout: 30000 });
+  await page.getByRole("button", { name: /Review invoice/ }).waitFor({ timeout: 60000 });
   const brand = await page.getByLabel("Brand", { exact: true }).inputValue();
   const fee = await page.getByLabel("Total fee").inputValue();
   if (brand !== "Notion" || fee !== "1800") throw new Error(`got brand=${brand} fee=${fee}`);

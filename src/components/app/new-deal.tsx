@@ -27,7 +27,7 @@ type Phase = "idle" | "extracting" | "ready";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const CURRENCIES = ["INR", "USD", "EUR", "GBP"];
-const SOURCE_LABEL: Record<string, string> = { groq: "Groq", gemini: "Gemini", "built-in": "Built-in reader" };
+const SOURCE_LABEL: Record<string, string> = { groq: "Groq", openrouter: "OpenRouter", "openai-compatible": "AI model", gemini: "Gemini", "built-in": "Built-in reader" };
 const FIELD_COUNT = 9;
 
 /** Highlights the words the AI pulled out, so the creator can see where each value came from. */
@@ -198,7 +198,7 @@ export function NewDealClient({
         </div>
         <span className="inline-flex items-center gap-2 self-start rounded-full bg-surface px-3 py-1.5 text-caption font-medium shadow-soft-sm ring-1 ring-line sm:self-auto">
           <span className={cn("size-2 rounded-full", aiLive ? "bg-emerald" : "bg-amber")} />
-          {aiLive ? "AI: Groq → Gemini fallback" : "AI: built-in reader (add keys for Groq)"}
+          {aiLive ? "AI: live model, with fallbacks" : "AI: built-in reader (add keys for a live model)"}
         </span>
       </div>
 

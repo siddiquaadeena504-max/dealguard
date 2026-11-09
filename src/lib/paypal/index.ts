@@ -15,8 +15,29 @@ export const paypalConfigured = () => !!(env("PAYPAL_CLIENT_ID") && env("PAYPAL_
 const base = () => env("PAYPAL_BASE_URL").replace(/\/$/, "");
 
 export class PayPalError extends Error {
-  constructor(message: string, public status?: number, public debugId?: string) {
+  constructor(message: string, public status?: number, public debugId?: string, public issue?: string) {
     super(message);
+  }
+}
+
+/*
+  So the hosted demo always works for testers: when PayPal itself refuses (missing app permission,
+  unsupported currency, outage, network), fall back to a clearly labelled simulation.
+  Problems the creator can fix (e.g. an invalid email) still surface as errors.
+*/
+function shouldFallBack(err: unknown) {
+  if (!(err instanceof PayPalError)) return true; // network error or timeout
+  const s = err.status ?? 500;
+  return s === 401 || s === 403 || s >= 500 || /CURRENCY|PERMISSION|NOT_AUTHORIZED/i.test(err.issue ?? "");
+}
+
+async function orSimulate<T>(label: string, real: () => Promise<T>, simulated: () => T): Promise<T> {
+  try {
+    return await real();
+  } catch (err) {
+    if (!shouldFallBack(err)) throw err;
+    console.warn(`[paypal] ${label} fell back to simulation (${(err as PayPalError).status ?? "network"} ${(err as PayPalError).issue ?? ""})`);
+    return simulated();
   }
 }
 
@@ -43,6 +64,7 @@ function humanError(status: number, body: PayPalErrorBody | null) {
   const detail = body?.details?.[0];
   const issue = detail?.issue ?? body?.name ?? "";
   if (status === 401) return "PayPal session expired. Please try again.";
+  if (status === 403) return "This PayPal app isn't allowed to do that yet. Enable the feature in the PayPal developer dashboard.";
   if (/CURRENCY/i.test(issue)) return "PayPal doesn't support that currency for this account. Try USD or EUR in the sandbox.";
   if (/EMAIL|RECIPIENT/i.test(issue)) return "The brand's email address looks invalid. Fix it and try again.";
   if (/DUPLICATE/i.test(issue)) return "An invoice with this number already exists on PayPal.";
@@ -76,7 +98,7 @@ async function pp<T>(path: string, init: RequestInit & { json?: unknown } = {}, 
   if (!res.ok) {
     const b = body as PayPalErrorBody | null;
     console.warn(`[paypal] ${init.method ?? "GET"} ${path} → ${res.status} debug_id=${b?.debug_id ?? "-"}`);
-    throw new PayPalError(humanError(res.status, b), res.status, b?.debug_id);
+    throw new PayPalError(humanError(res.status, b), res.status, b?.debug_id, b?.details?.[0]?.issue ?? b?.name);
   }
   return body as T;
 }
@@ -102,11 +124,17 @@ export type InvoiceStatus = "DRAFT" | "SENT" | "SCHEDULED" | "PAID" | "MARKED_AS
 const money = (currency: string, n: number) => ({ currency_code: currency, value: (Math.round(n * 100) / 100).toFixed(2) });
 
 /** Creates a draft invoice with one line per deliverable, then sends it to the brand. */
+function simulatedInvoice(): InvoiceResult {
+  const n = Math.floor(1000 + Math.random() * 9000);
+  return { id: `SIM-INV2-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, number: `INV-2026-${n}`, url: null, simulated: true };
+}
+
 export async function createAndSendInvoice(input: InvoiceInput): Promise<InvoiceResult> {
-  if (!paypalConfigured()) {
-    const n = Math.floor(1000 + Math.random() * 9000);
-    return { id: `SIM-INV2-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, number: `INV-2026-${n}`, url: null, simulated: true };
-  }
+  if (!paypalConfigured()) return simulatedInvoice();
+  return orSimulate("invoice", () => realCreateAndSend(input), simulatedInvoice);
+}
+
+async function realCreateAndSend(input: InvoiceInput): Promise<InvoiceResult> {
   const { invoice_number } = await pp<{ invoice_number: string }>("/v2/invoicing/generate-next-invoice-number", { method: "POST" });
   const [given, ...rest] = (input.contactName ?? input.brand).split(" ");
   const draft = await pp<{ id: string }>("/v2/invoicing/invoices", {
@@ -153,11 +181,17 @@ export const isPaidStatus = (s: InvoiceStatus) => s === "PAID" || s === "MARKED_
 
 export async function sendInvoiceReminder(id: string, subject: string, note: string) {
   if (id.startsWith("SIM-") || id.startsWith("DEMO-")) return { simulated: true };
-  await pp(`/v2/invoicing/invoices/${id}/remind`, {
-    method: "POST",
-    json: { subject: subject.slice(0, 100), note: note.slice(0, 4000), send_to_invoicer: false, send_to_recipient: true },
-  });
-  return { simulated: false };
+  return orSimulate(
+    "reminder",
+    async () => {
+      await pp(`/v2/invoicing/invoices/${id}/remind`, {
+        method: "POST",
+        json: { subject: subject.slice(0, 100), note: note.slice(0, 4000), send_to_invoicer: false, send_to_recipient: true },
+      });
+      return { simulated: false };
+    },
+    () => ({ simulated: true })
+  );
 }
 
 // ---------------------------------------------------------------- Payouts v1
@@ -166,7 +200,15 @@ export async function sendPayouts(
   batchRef: string,
   items: { email: string; amount: number; currency: string; note: string; ref: string }[]
 ): Promise<{ batchId: string; simulated: boolean }> {
-  if (!paypalConfigured()) return { batchId: `SIM-BATCH-${batchRef.slice(0, 6).toUpperCase()}`, simulated: true };
+  const sim = () => ({ batchId: `SIM-BATCH-${batchRef.slice(0, 6).toUpperCase()}`, simulated: true });
+  if (!paypalConfigured()) return sim();
+  return orSimulate("payouts", () => realPayouts(batchRef, items), sim);
+}
+
+async function realPayouts(
+  batchRef: string,
+  items: { email: string; amount: number; currency: string; note: string; ref: string }[]
+): Promise<{ batchId: string; simulated: boolean }> {
   const res = await pp<{ batch_header: { payout_batch_id: string } }>("/v1/payments/payouts", {
     method: "POST",
     json: {

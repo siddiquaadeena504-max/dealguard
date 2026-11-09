@@ -14,10 +14,12 @@ import { money, fmtDate } from "../format";
   Logs say which model answered, never keys or prompts.
 */
 
-export type AiSource = "groq" | "gemini" | "built-in";
+export type AiSource = "groq" | "openrouter" | "openai-compatible" | "gemini" | "built-in";
 
 const TIMEOUT_MS = 20_000;
-const RETRIES = 2;
+const RETRIES = 1;
+/** Whole-task budget: after this the built-in reader answers, so nobody waits forever. */
+const TASK_BUDGET_MS = 25_000;
 
 const env = (k: string) => process.env[k]?.trim() || "";
 
@@ -34,9 +36,10 @@ function geminiClient() {
 
 export const aiConfigured = () => !!(groqClient() || geminiClient());
 
+// 429 means "this model is busy": move to the next model rather than waiting on it.
 function retryable(err: unknown) {
   const status = (err as { status?: number })?.status;
-  if (typeof status === "number") return status === 429 || status >= 500;
+  if (typeof status === "number") return status >= 500;
   return true; // network errors, timeouts
 }
 
@@ -49,11 +52,13 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, deadline: number): Promise<T> {
   let last: unknown;
   for (let attempt = 0; attempt <= RETRIES; attempt++) {
+    const left = deadline - Date.now();
+    if (left < 2_000) break;
     try {
-      return await withTimeout(fn(), TIMEOUT_MS);
+      return await withTimeout(fn(), Math.min(TIMEOUT_MS, left));
     } catch (err) {
       last = err;
       if (!retryable(err) || attempt === RETRIES) break;
@@ -61,20 +66,31 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       await sleep(backoff);
     }
   }
-  throw last;
+  throw last ?? Object.assign(new Error("AI time budget used up"), { status: undefined });
 }
 
-type Provider = { name: Exclude<AiSource, "built-in">; complete: (system: string, user: string) => Promise<string> };
+type Provider = { name: Exclude<AiSource, "built-in">; model: string; complete: (system: string, user: string) => Promise<string> };
+
+// Name the OpenAI-compatible provider by its host, so logs and the UI say who answered.
+function compatibleName(): Provider["name"] {
+  const host = env("AI_BASE_URL");
+  if (host.includes("groq.com")) return "groq";
+  if (host.includes("openrouter.ai")) return "openrouter";
+  return "openai-compatible";
+}
 
 function providers(): Provider[] {
   const list: Provider[] = [];
   const g = groqClient();
+  // AI_MODEL may list several models (comma-separated); each is tried in order.
   if (g)
+    for (const model of env("AI_MODEL").split(",").map((m) => m.trim()).filter(Boolean))
     list.push({
-      name: "groq",
+      name: compatibleName(),
+      model,
       complete: async (system, user) => {
         const res = await g.chat.completions.create({
-          model: env("AI_MODEL"),
+          model,
           temperature: 0.2,
           response_format: { type: "json_object" },
           messages: [{ role: "system", content: system }, { role: "user", content: user }],
@@ -86,6 +102,7 @@ function providers(): Provider[] {
   if (gm)
     list.push({
       name: "gemini",
+      model: env("GEMINI_MODEL"),
       complete: async (system, user) => {
         const res = await gm.models.generateContent({
           model: env("GEMINI_MODEL"),
@@ -105,9 +122,11 @@ function parseJson(text: string): unknown {
 
 /** Runs a JSON task across providers. Returns null when nothing configured or all failed. */
 async function jsonTask<T>(system: string, user: string, schema: z.ZodType<T>): Promise<{ data: T; source: AiSource } | null> {
+  const deadline = Date.now() + TASK_BUDGET_MS;
   for (const p of providers()) {
+    if (deadline - Date.now() < 2_000) break;
     try {
-      const text = await withRetry(() => p.complete(system, user));
+      const text = await withRetry(() => p.complete(system, user), deadline);
       let parsed = schema.safeParse(safeJson(text));
       if (!parsed.success) {
         // One repair attempt: show the model its own output and the validation errors.
@@ -118,17 +137,18 @@ async function jsonTask<T>(system: string, user: string, schema: z.ZodType<T>): 
               .slice(0, 5)
               .map((i) => `${i.path.join(".")}: ${i.message}`)
               .join("; ")}\nPrevious reply:\n${text.slice(0, 2000)}\n\nReply again with ONLY corrected JSON.`
-          )
+          ),
+          deadline
         );
         parsed = schema.safeParse(safeJson(repaired));
       }
       if (parsed.success) {
-        console.info(`[ai] answered by ${p.name}`);
+        console.info(`[ai] answered by ${p.name} (${p.model})`);
         return { data: parsed.data, source: p.name };
       }
-      console.warn(`[ai] ${p.name} returned invalid JSON twice, trying next provider`);
+      console.warn(`[ai] ${p.name} (${p.model}) returned invalid JSON twice, trying next`);
     } catch (err) {
-      console.warn(`[ai] ${p.name} failed (${(err as { status?: number }).status ?? "network"}), trying next provider`);
+      console.warn(`[ai] ${p.name} (${p.model}) failed (${(err as { status?: number }).status ?? "network"}), trying next`);
     }
   }
   return null;
@@ -157,8 +177,17 @@ If per-deliverable prices are not stated, split the total fee across deliverable
 export async function extractDeal(email: string, hint?: { fromName?: string; fromEmail?: string; subject?: string }) {
   const user = `${hint?.fromName ? `From: ${hint.fromName} <${hint.fromEmail ?? ""}>\n` : ""}${hint?.subject ? `Subject: ${hint.subject}\n` : ""}Today is ${new Date().toISOString().slice(0, 10)}.\n\nEMAIL:\n${email.slice(0, 8000)}`;
   const ai = await jsonTask(EXTRACT_SYSTEM, user, ExtractionSchema);
-  if (ai) return { data: ai.data, source: ai.source };
+  if (ai) return { data: tidyAmounts(ai.data), source: ai.source };
   return { data: rulesExtract(email, hint), source: "built-in" as AiSource };
+}
+
+/** Small models sometimes put quantities where prices go. If lines clearly don't add up to the fee, spread the fee. */
+function tidyAmounts(x: Extraction): Extraction {
+  if (!x.fee || !x.deliverables.length) return x;
+  const sum = x.deliverables.reduce((s, d) => s + (d.amount ?? 0), 0);
+  if (sum > 0 && Math.abs(sum - x.fee) / x.fee < 0.01) return x;
+  const each = Math.round((x.fee / x.deliverables.length) * 100) / 100;
+  return { ...x, deliverables: x.deliverables.map((d) => ({ ...d, amount: each })) };
 }
 
 // ---------------------------------------------------------------- (b) chase reminders, (c) renewal pitches, (d) insight
