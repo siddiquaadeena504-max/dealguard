@@ -56,7 +56,7 @@ export default async function PayoutsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <Reveal>
+        <Reveal className="min-w-0">
           <Card className="overflow-hidden">
             <CardHeader><CardTitle>Payout history</CardTitle></CardHeader>
             {rows.length === 0 ? (
@@ -86,7 +86,7 @@ export default async function PayoutsPage() {
             )}
           </Card>
         </Reveal>
-        <Reveal delay={0.1}>
+        <Reveal delay={0.1} className="min-w-0">
           <Card>
             <CardHeader><CardTitle>Your collaborators</CardTitle></CardHeader>
             <CardContent>

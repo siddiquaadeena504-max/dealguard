@@ -9,6 +9,7 @@ const lanAddresses = Object.values(networkInterfaces())
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: lanAddresses,
+  devIndicators: false,
   serverExternalPackages: ["better-sqlite3"],
 };
 

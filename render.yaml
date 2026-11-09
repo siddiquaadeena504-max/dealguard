@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: dealguard
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      # The free plan's disk is wiped on restart; the database is recreated on boot
+      # and demo workspaces are seeded per visitor, so the demo always works.
+      - key: DATA_DIR
+        value: ./data
+      - key: PAYPAL_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_BUSINESS_EMAIL
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: AI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false

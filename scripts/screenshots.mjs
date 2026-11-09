@@ -18,7 +18,16 @@ for (const route of routes) {
       const errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
       page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-      await page.goto(BASE + route, { waitUntil: "networkidle" });
+      // App routes need a demo workspace; "/app/deals/@Brand" opens that brand's deal.
+      if (route.startsWith("/app")) await page.goto(BASE + "/demo", { waitUntil: "networkidle" });
+      const brand = route.match(/@(\w+)/)?.[1];
+      if (brand) {
+        await page.getByText(brand, { exact: true }).filter({ visible: true }).first().click();
+        await page.waitForURL(/\/app\/deals\//);
+        await page.waitForLoadState("networkidle");
+      } else {
+        await page.goto(BASE + route, { waitUntil: "networkidle" });
+      }
       // Scroll through so scroll-triggered reveals fire, then return to the top.
       await page.evaluate(async () => {
         for (let y = 0; y < document.body.scrollHeight; y += 500) {

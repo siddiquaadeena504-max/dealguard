@@ -126,12 +126,12 @@ export function DealView({
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {(deal.state === "sent" || deal.state === "overdue") && <ChaseAgent deal={deal} reminders={reminders} late={late} />}
           <InvoiceCard deal={deal} />
           <Collaborators deal={deal} collaborators={collaborators} payouts={payouts} />
         </div>
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <InsightCard deal={deal} />
           <RightsCard deal={deal} />
           <Card>
