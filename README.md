@@ -7,6 +7,14 @@ DealGuard is an AI agent for small creators (10K–200K followers) who manage th
 
 > Built for the PayPal AI Hackathon 2026. Payments run on the **PayPal sandbox**; no real money moves.
 
+## Built during the hackathon
+
+DealGuard began as an earlier prototype: a local tool that read Gmail and extracted deal terms with an on-device model. During the hackathon it was rebuilt around PayPal:
+
+- **The PayPal integration is new**: Invoicing v2 (create, send, status, reminders), Payouts for collaborator splits, and webhook verification for `INVOICING.INVOICE.PAID`.
+- **The agent is new**: the chase agent (friendly → firm → final reminders sent through PayPal), the usage-rights guard with renewal pitches, and the per-deal insight.
+- **The product is new**: the approval-first flow with an invoice preview, the dashboard, onboarding, per-visitor demo mode, and the full design system (light and dark mode, mobile).
+
 ![Landing page](docs/screenshots/landing-desktop-light.png)
 
 ---
@@ -57,13 +65,13 @@ flowchart LR
     WH[/api/paypal/webhook/]
     DB[(SQLite via Drizzle)]
   end
-  Groq[(Groq<br/>OpenAI-compatible)]
-  Gemini[(Gemini)]
+  OR[(OpenRouter<br/>OpenAI-compatible<br/>model list)]
+  Gemini[(Gemini<br/>optional)]
   PayPal[(PayPal REST<br/>sandbox)]
 
   UI -- "approve, refresh, remind" --> SA
   SA --> AI
-  AI -- primary --> Groq
+  AI -- primary --> OR
   AI -- fallback --> Gemini
   AI -. no keys .-> Rules[Built-in reader]
   SA --> PP --> PayPal
@@ -89,6 +97,8 @@ All PayPal and AI calls happen on the server. Keys are read from environment var
 
 Errors are turned into plain-English messages in the UI (e.g. *"The brand's email address looks invalid. Fix it and try again."*). 429 and 5xx responses are retried with backoff.
 
+**So the demo never breaks for a judge:** if PayPal itself refuses a call (a sandbox app without a permission, an unsupported currency, an outage or a network error), that step finishes in a clearly labelled **simulation**: IDs start with `SIM-` and the UI says "(simulated)". Problems the creator can fix, like an invalid email address, still show as errors.
+
 ## How AI is used
 
 AI does real work in four jobs (`src/lib/ai`):
@@ -98,12 +108,17 @@ AI does real work in four jobs (`src/lib/ai`):
 3. **Draft usage-rights renewal pitches** with a suggested extension fee.
 4. **Write a one-line agent insight** per deal.
 
+**Models used:**
+- **OpenRouter** (OpenAI-compatible API, called with the OpenAI SDK). `AI_MODEL` takes a list that is tried in order. The hosted demo uses `nvidia/nemotron-3.5-super-vl:free`, then `openrouter/free`. Any OpenAI-compatible provider works, Groq included, by changing `AI_BASE_URL`.
+- **Gemini** (Google GenAI SDK) is an optional extra fallback.
+- **A built-in rules-based reader and template writer** answer when no keys are set, or when every model is unavailable.
+
 **Reliability:**
-- **Providers:** Groq is the primary model, called through its OpenAI-compatible API with the OpenAI SDK. If Groq fails, DealGuard falls back to **Gemini**.
-- **Timeouts and retries:** every call has a timeout. Only 429, 5xx and network errors are retried, with exponential backoff and jitter.
-- **JSON checks:** an invalid JSON reply gets one repair prompt before the next provider is tried.
-- **Logging:** logs record which model answered, never keys or prompts.
-- **No keys or all failed:** a built-in rules-based reader and template writer keep the demo working. The UI says which one answered ("Read by Groq / Gemini / Built-in reader").
+- **Timeouts and retries:** every call has a timeout. 5xx and network errors are retried once with exponential backoff and jitter. A 429 ("model busy") skips straight to the next model.
+- **Time budget:** each AI task has 25 seconds in total. After that the built-in reader answers, so nobody waits forever.
+- **JSON checks:** replies are validated with Zod. An invalid reply gets one repair prompt before the next model is tried. If line-item prices clearly don't add up to the fee, the fee is spread across the lines.
+- **Logging:** logs record which provider and model answered, never keys or prompts.
+- **Transparency:** the UI says who read the email ("Read by OpenRouter / Gemini / Built-in reader").
 
 The AI never changes a deal or sends anything by itself. Every action waits for the creator to click Approve.
 
@@ -129,8 +144,10 @@ With no keys, DealGuard runs fully in demo mode: the built-in reader extracts de
 | `PAYPAL_BASE_URL` | `https://api-m.sandbox.paypal.com` |
 | `PAYPAL_BUSINESS_EMAIL` | The sandbox **business** account email (invoices are sent from it). |
 | `PAYPAL_WEBHOOK_ID` | Optional. ID of the webhook you register for `INVOICING.INVOICE.PAID`. |
-| `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | Any OpenAI-compatible provider. Groq: `https://api.groq.com/openai/v1`. OpenRouter: `https://openrouter.ai/api/v1` with a model like `google/gemma-4-31b-it:free`. |
-| `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini fallback key and model name. |
+| `AI_API_KEY` | OpenRouter API key (or any OpenAI-compatible provider's key). |
+| `AI_BASE_URL` | `https://openrouter.ai/api/v1` (Groq: `https://api.groq.com/openai/v1`). |
+| `AI_MODEL` | One model or a comma-separated list, tried in order, e.g. `nvidia/nemotron-3.5-super-vl:free,openrouter/free`. |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Optional Gemini fallback key and model name. |
 | `DATA_DIR` | Optional. Folder for the SQLite file (default `./data`). |
 
 ### Useful scripts
@@ -160,7 +177,7 @@ See [docs/MANUAL_STEPS.md](docs/MANUAL_STEPS.md) for Render and PayPal webhook s
 
 ## Tech
 
-Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · shadcn/ui (customised) · Framer Motion · lucide-react · AG Grid Community · SQLite + Drizzle ORM · OpenAI SDK (Groq) · Google GenAI SDK (Gemini) · Zod · Playwright
+Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · shadcn/ui (customised) · Framer Motion · lucide-react · AG Grid Community · SQLite + Drizzle ORM · OpenAI SDK (OpenRouter) · Google GenAI SDK (Gemini) · Zod · Playwright
 
 ## License
 

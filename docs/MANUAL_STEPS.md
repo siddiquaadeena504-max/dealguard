@@ -11,10 +11,12 @@
    - Personal account → use it to *pay* invoices during the demo (click the account → **View/Edit account** to see its password).
 5. `PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com`
 
-**Groq** (primary AI): https://console.groq.com → **API Keys** → **Create API Key** → `AI_API_KEY`.
-Set `AI_BASE_URL=https://api.groq.com/openai/v1` and `AI_MODEL` to a model listed on Groq's **Models** page.
+**OpenRouter** (primary AI): https://openrouter.ai → **Keys** → **Create Key** → `AI_API_KEY`.
+Set `AI_BASE_URL=https://openrouter.ai/api/v1` and `AI_MODEL=nvidia/nemotron-3.5-super-vl:free,openrouter/free` (a list, tried in order).
+Free models are slow (10–40 s per email) and sometimes busy. A few dollars of OpenRouter credit, with a paid model, makes extraction take a couple of seconds.
+(Groq works too: `AI_BASE_URL=https://api.groq.com/openai/v1` with a Groq key and model.)
 
-**Gemini** (fallback AI): https://aistudio.google.com → **Get API key** → `GEMINI_API_KEY`. Set `GEMINI_MODEL` to a model from their list.
+**Gemini** (optional extra fallback): https://aistudio.google.com → **Get API key** → `GEMINI_API_KEY`. Set `GEMINI_MODEL` to a model from their list.
 
 Paste them into `.env` locally (never into chat or git).
 
