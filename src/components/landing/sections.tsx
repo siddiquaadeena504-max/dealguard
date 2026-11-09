@@ -61,6 +61,9 @@ export function Nav() {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle className="hidden sm:inline-flex" />
+          <Link href="/onboarding" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden h-9 sm:inline-flex")}>
+            Get started
+          </Link>
           <Link href="/demo" className={cn(buttonVariants({ size: "sm" }), "h-9")}>
             Try demo
           </Link>

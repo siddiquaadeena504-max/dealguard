@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { FlaskConical, LayoutDashboard, Plus, RotateCcw, Settings, Wallet } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { PaletteButton } from "./command-palette";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -35,12 +36,13 @@ export function DemoBanner({ simulated }: { simulated: boolean }) {
   );
 }
 
-export function Sidebar({ name, niche }: { name: string; niche: string | null }) {
+export function Sidebar({ name, niche, banner }: { name: string; niche: string | null; banner?: boolean }) {
   const isActive = useActive();
   return (
-    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line/70 bg-surface/60 px-4 py-5 backdrop-blur-xl md:flex">
+    <aside className={cn("sticky top-0 hidden w-64 shrink-0 flex-col border-r border-line/70 bg-surface/60 px-4 py-5 backdrop-blur-xl md:flex", banner ? "h-[calc(100dvh-2.25rem)]" : "h-dvh")}>
       <Link href="/" className="px-2"><Logo /></Link>
-      <nav className="mt-8 space-y-1" aria-label="Main">
+      <PaletteButton className="mt-6" />
+      <nav className="mt-4 space-y-1" aria-label="Main">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
           return (

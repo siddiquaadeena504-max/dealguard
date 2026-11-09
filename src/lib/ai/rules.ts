@@ -45,7 +45,7 @@ const PLATFORMS: [RegExp, string][] = [
 ];
 const DELIVERABLE_WORDS = /\b(reel|reels|story|stories|video|videos|short|shorts|integration|post|posts|tiktok|carousel|vlog|tutorial|live)\b/i;
 
-export function rulesExtract(email: string, hint?: { fromName?: string; fromEmail?: string }): Extraction {
+export function rulesExtract(email: string, hint?: { fromName?: string; fromEmail?: string; subject?: string }): Extraction {
   const text = email.replace(/\r/g, "");
   const lower = text.toLowerCase();
   const confidence: Extraction["confidence"] = {};
@@ -55,9 +55,15 @@ export function rulesExtract(email: string, hint?: { fromName?: string; fromEmai
   if (contactEmail) confidence.contactEmail = hint?.fromEmail ? 0.99 : 0.9;
 
   // Brand: signature line like "Partnerships, GlowSkin" or the sender label "Name · Brand".
+  // Only short signature lines count, e.g. "Influencer Partnerships, GlowSkin".
+  const signature = text
+    .split("\n")
+    .map((l) => l.trim())
+    .reverse()
+    .find((l) => l.length < 70 && /^[\w &'-]*(partnerships|marketing|team|manager|lead|influencer|social)[^,]*,\s*[^,]{2,40}$/i.test(l));
   let brand =
-    text.match(/(?:partnerships|marketing|team|manager|lead|creator team)[^,\n]*,\s*([^\n]{2,40})/i)?.[1]?.trim() ??
     hint?.fromName?.split("·")[1]?.trim() ??
+    signature?.split(",").slice(-1)[0]?.trim() ??
     null;
   if (brand) brand = brand.replace(/\s+(india|europe|eu|global)$/i, "").trim();
   if (!brand && contactEmail) {
@@ -142,7 +148,9 @@ export function rulesExtract(email: string, hint?: { fromName?: string; fromEmai
   const subjectish = text.match(/(?:launch|campaign|series|push)[^.\n]{0,40}/i)?.[0];
   return {
     brand, contactName, contactEmail, currency, fee, deliverables: items, dueDate, paymentTerms, usageDays,
-    title: subjectish ? subjectish.charAt(0).toUpperCase() + subjectish.slice(1).trim() : brand ? `${brand} partnership` : null,
+    title: hint?.subject
+      ? hint.subject.replace(/^(re|fwd?):s*/i, "").replace(/[^p{L}p{N}s:&+-x]/gu, "").trim()
+      : subjectish ? subjectish.charAt(0).toUpperCase() + subjectish.slice(1).trim() : brand ? `${brand} partnership` : null,
     confidence,
   };
 }

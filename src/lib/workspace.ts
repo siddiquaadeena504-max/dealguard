@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { activity, db, deals, workspaces } from "./db";
 
 export const WS_COOKIE = "dg_ws";
@@ -19,7 +19,7 @@ export async function requireWorkspace() {
 }
 
 export function listDeals(workspaceId: string) {
-  return db.select().from(deals).where(eq(deals.workspaceId, workspaceId)).orderBy(desc(deals.createdAt)).all();
+  return db.select().from(deals).where(and(eq(deals.workspaceId, workspaceId), ne(deals.status, "cancelled"))).orderBy(desc(deals.createdAt)).all();
 }
 
 export function listActivity(workspaceId: string, limit = 12) {
