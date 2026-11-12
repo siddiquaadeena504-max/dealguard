@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { FlaskConical, LayoutDashboard, Plus, RotateCcw, Settings, Wallet } from "lucide-react";
+import { FlaskConical, LayoutDashboard, Plus, Repeat, RotateCcw, Settings, Wallet } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { PaletteButton } from "./command-palette";
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/app/new", label: "New deal", icon: Plus },
   { href: "/app/payouts", label: "Payouts", icon: Wallet },
   { href: "/app/settings", label: "Settings", icon: Settings },
+  { href: "/app/subscriptions", label: "Subscriptions", icon: Repeat },
 ];
 
 function useActive() {
