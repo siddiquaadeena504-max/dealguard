@@ -10,7 +10,8 @@ export async function GET(req: Request) {
     return new NextResponse(null, { status: 204 });
   }
   const id = createDemoWorkspace();
-  const res = NextResponse.redirect(new URL("/app", req.url));
+  // Relative redirect: behind a proxy (Render) req.url is the internal localhost address.
+  const res = new NextResponse(null, { status: 307, headers: { Location: "/app" } });
   res.cookies.set(WS_COOKIE, id, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 });
   return res;
 }
