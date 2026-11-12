@@ -118,7 +118,7 @@ export function NewDealClient({
   const [source, setSource] = useState<string | null>(draft ? "saved" : null);
   const [revealed, setRevealed] = useState(draft ? 0 : 0);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [sent, setSent] = useState<{ dealId: string; invoiceNumber: string; simulated: boolean } | null>(null);
+  const [sent, setSent] = useState<{ dealId: string; invoiceNumber: string; simulated: boolean; note?: string } | null>(null);
   const [sending, startSend] = useTransition();
 
   const emailText = tab === "inbox" ? selected?.body ?? "" : pasted;
@@ -179,8 +179,9 @@ export function NewDealClient({
         toast.error("Invoice not sent", { description: res.error });
         return;
       }
-      setSent({ dealId: res.dealId, invoiceNumber: res.invoiceNumber, simulated: res.simulated });
-      setTimeout(() => router.push(`/app/deals/${res.dealId}?sent=1`), 2600);
+      setSent({ dealId: res.dealId, invoiceNumber: res.invoiceNumber, simulated: res.simulated, note: res.note });
+      // Leave the note on screen long enough to read.
+      setTimeout(() => router.push(`/app/deals/${res.dealId}?sent=1`), res.note ? 6000 : 2600);
     });
   }
 
@@ -439,6 +440,7 @@ export function NewDealClient({
                 <p className="mt-2 max-w-sm text-muted-foreground">
                   Invoice <span className="tabular">{sent.invoiceNumber}</span> sent{sent.simulated ? " (simulated)" : " via PayPal"}. We&apos;ll keep an eye on it and nudge {data.brand} if it runs late.
                 </p>
+                {sent.note && <p className="mt-3 max-w-sm rounded-xl bg-amber-soft px-3 py-2 text-caption text-amber-ink">{sent.note}</p>}
                 <Button className="mt-6" onClick={() => router.push(`/app/deals/${sent.dealId}`)}>Open deal <ArrowRight /></Button>
               </motion.div>
             ) : (

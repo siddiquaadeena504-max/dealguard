@@ -29,7 +29,7 @@ export function DemoBanner({ simulated }: { simulated: boolean }) {
         <span className="font-semibold">Demo mode:</span> sandbox payments only
         {simulated && <span className="hidden text-[#9AA1AD] sm:inline"> · PayPal simulated until keys are added</span>}
       </span>
-      <Link href="/demo" className="ml-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-emerald hover:bg-white/10">
+      <Link href="/demo" prefetch={false} className="ml-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-emerald hover:bg-white/10">
         <RotateCcw className="size-3" aria-hidden /> Reset demo
       </Link>
     </div>

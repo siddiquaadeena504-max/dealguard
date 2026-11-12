@@ -118,7 +118,10 @@ export type InvoiceInput = {
   memo: string;
 };
 
-export type InvoiceResult = { id: string; number: string; url: string | null; simulated: boolean };
+export type InvoiceResult = { id: string; number: string; url: string | null; simulated: boolean; note?: string };
+
+/** PayPal can't invoice in these from a non-local account (INR needs an India account). */
+const UNSUPPORTED_CURRENCIES = new Set(["INR"]);
 export type InvoiceStatus = "DRAFT" | "SENT" | "SCHEDULED" | "PAID" | "MARKED_AS_PAID" | "CANCELLED" | "PAYMENT_PENDING" | "PARTIALLY_PAID" | "UNPAID" | string;
 
 const money = (currency: string, n: number) => ({ currency_code: currency, value: (Math.round(n * 100) / 100).toFixed(2) });
@@ -131,6 +134,8 @@ function simulatedInvoice(): InvoiceResult {
 
 export async function createAndSendInvoice(input: InvoiceInput): Promise<InvoiceResult> {
   if (!paypalConfigured()) return simulatedInvoice();
+  if (UNSUPPORTED_CURRENCIES.has(input.currency))
+    return { ...simulatedInvoice(), note: `PayPal's sandbox can't invoice in ${input.currency}, so this one is simulated. Try a USD or EUR deal for a real PayPal invoice.` };
   return orSimulate("invoice", () => realCreateAndSend(input), simulatedInvoice);
 }
 

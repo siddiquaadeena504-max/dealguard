@@ -20,6 +20,7 @@ export function DemoButton({ size = "lg", className, label = "Try the live demo"
     <Magnetic>
       <Link
         href="/demo"
+        prefetch={false}
         className={cn(
           buttonVariants({ size }),
           "group/cta overflow-hidden shadow-[0_8px_30px_-6px_rgb(18_184_134/0.55)] hover:shadow-[0_10px_40px_-4px_rgb(18_184_134/0.7)]",
@@ -64,7 +65,7 @@ export function Nav() {
           <Link href="/onboarding" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden h-9 sm:inline-flex")}>
             Get started
           </Link>
-          <Link href="/demo" className={cn(buttonVariants({ size: "sm" }), "h-9")}>
+          <Link href="/demo" prefetch={false} className={cn(buttonVariants({ size: "sm" }), "h-9")}>
             Try demo
           </Link>
         </div>

@@ -5,7 +5,7 @@ import { mkdirSync } from "node:fs";
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 mkdirSync("screenshots", { recursive: true });
-const browser = await chromium.launch();
+const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || undefined });
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
@@ -28,16 +28,16 @@ await step("open demo dashboard", async () => {
   await page.goto(BASE + "/demo");
   await page.getByText("Needs your attention").waitFor();
 });
-await step("open new deal, pick Notion email", async () => {
+await step("open new deal, pick Swiggy email (INR, simulated PayPal)", async () => {
   await page.goto(BASE + "/app/new");
-  await page.getByText("Notion x Aanya").click();
+  await page.getByText("Swiggy Instamart: festive").click();
   await page.getByRole("button", { name: /Extract deal with AI/ }).click();
 });
 await step("fields animate in with values", async () => {
   await page.getByRole("button", { name: /Review invoice/ }).waitFor({ timeout: 60000 });
   const brand = await page.getByLabel("Brand", { exact: true }).inputValue();
   const fee = await page.getByLabel("Total fee").inputValue();
-  if (brand !== "Notion" || fee !== "1800") throw new Error(`got brand=${brand} fee=${fee}`);
+  if (brand !== "Swiggy" || fee !== "40000") throw new Error(`got brand=${brand} fee=${fee}`);
 });
 await step("approval modal shows invoice preview", async () => {
   await page.getByRole("button", { name: /Review invoice/ }).click();
@@ -46,13 +46,13 @@ await step("approval modal shows invoice preview", async () => {
 });
 await step("approve sends invoice and opens deal", async () => {
   await page.getByRole("button", { name: /Approve & send/ }).click();
-  await page.getByText(/On its way to Notion/).waitFor({ timeout: 20000 });
+  await page.getByText(/On its way to Swiggy/).waitFor({ timeout: 20000 });
   await page.waitForURL(/\/app\/deals\//, { timeout: 15000 });
   await page.getByText("Chase agent").waitFor();
 });
 await step("chase agent drafts and sends a reminder", async () => {
   await page.getByRole("button", { name: /Draft .* reminder/ }).click();
-  await page.getByRole("button", { name: /Approve & send/ }).first().waitFor({ timeout: 20000 });
+  await page.getByRole("button", { name: /Approve & send/ }).first().waitFor({ timeout: 45000 });
   await page.getByRole("button", { name: /Approve & send/ }).first().click();
   await page.getByText(/Nudge sent/).first().waitFor({ timeout: 15000 });
 });
@@ -76,7 +76,7 @@ await step("approve payouts", async () => {
 await step("payouts page lists it", async () => {
   await page.goto(BASE + "/app/payouts");
   await page.getByText("Payout history").waitFor();
-  await page.getByText(/10% of Notion/).first().waitFor();
+  await page.getByText(/10% of Swiggy/).first().waitFor();
 });
 await step("settings save", async () => {
   await page.goto(BASE + "/app/settings");

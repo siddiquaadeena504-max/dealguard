@@ -82,6 +82,17 @@ flowchart LR
 
 All PayPal and AI calls happen on the server. Keys are read from environment variables and are never logged or sent to the browser.
 
+## What is real in the hosted demo
+
+| Step | Hosted demo |
+|---|---|
+| Invoices for **USD / EUR** deals | **Real PayPal sandbox** (Invoicing API v2): created, sent and tracked. |
+| Payment reminders | **Real**: sent through PayPal's invoice reminder endpoint. |
+| Payment status | **Real**: "Refresh status" reads the invoice from PayPal. |
+| Invoices for **INR** deals | Simulated and labelled: PayPal can't invoice in INR from a US sandbox account. |
+| Seeded sample deals, "Simulate brand payment" | Simulated and labelled, so judges can see every state in seconds. |
+| Collaborator payouts | The code calls PayPal Payouts, but Payouts isn't enabled on this sandbox account, so the step runs as a labelled simulation. |
+
 ## PayPal APIs used, and why
 
 | API | Endpoint | Why |
@@ -163,8 +174,8 @@ With no keys, DealGuard runs fully in demo mode: the built-in reader extracts de
 
 1. Click **Try the live demo**. You land on a dashboard with deals in every state.
 2. **Needs your attention** shows two late brands, one deal to approve and usage rights about to expire.
-3. Click **New deal from email** → pick **GlowSkin** in the demo inbox → **Extract deal with AI**. Watch the fields fill in.
-4. **Review invoice** → **Approve & send**. The invoice goes out and you land on the deal.
+3. Click **New deal from email** → pick **Notion** (a USD deal) in the demo inbox → **Extract deal with AI**. Watch the fields fill in (free AI models can take 10–40 seconds).
+4. **Review invoice** → **Approve & send**. A real PayPal sandbox invoice goes out and you land on the deal.
 5. Click **Simulate brand payment** (or pay as the sandbox buyer and click **Refresh status**). Watch the confetti, then **Approve & send payouts**.
 6. Open **Mamaearth** (9 days late) → the chase agent suggests a **firm** reminder → **Draft** → **Approve & send**.
 7. Open **Nykaa** → usage rights end in 5 days → **Draft renewal pitch**.

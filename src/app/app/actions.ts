@@ -77,7 +77,7 @@ const ApproveSchema = ExtractionSchema.extend({
 export async function approveAndSendAction(
   input: unknown,
   opts: { draftId?: string; sourceEmail?: string; confidence?: Record<string, number> }
-): Promise<Result<{ dealId: string; simulated: boolean; invoiceNumber: string }>> {
+): Promise<Result<{ dealId: string; simulated: boolean; invoiceNumber: string; note?: string }>> {
   try {
     const w = await ws();
     const parsed = ApproveSchema.safeParse(input);
@@ -121,7 +121,7 @@ export async function approveAndSendAction(
     if (insight) db.update(deals).set({ insight }).where(eq(deals.id, dealId)).run();
 
     revalidatePath("/app", "layout");
-    return { ok: true, dealId, simulated: invoice.simulated, invoiceNumber: invoice.number };
+    return { ok: true, dealId, simulated: invoice.simulated, invoiceNumber: invoice.number, note: invoice.note };
   } catch (err) {
     return fail(err);
   }

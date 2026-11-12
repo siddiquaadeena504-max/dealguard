@@ -30,7 +30,10 @@ export default async function NewDealPage({ searchParams }: { searchParams: Prom
   return (
     <NewDealClient
       creator={{ name: ws.name, payoutEmail: ws.payoutEmail }}
-      emails={DEMO_EMAILS.map((e) => ({ ...e, body: e.body() }))}
+      // USD and EUR offers first: those go out as real PayPal sandbox invoices.
+      emails={["notion", "decathlon", "glowskin", "boat", "swiggy"]
+        .map((id) => DEMO_EMAILS.find((e) => e.id === id)!)
+        .map((e) => ({ ...e, body: e.body() }))}
       draft={draft}
       aiLive={live.groq || live.gemini}
       paypalLive={live.paypal}
